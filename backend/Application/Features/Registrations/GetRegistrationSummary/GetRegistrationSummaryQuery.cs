@@ -5,17 +5,13 @@ using Domain.Common;
 
 public sealed record GetRegistrationSummaryQuery : IQuery<Result<RegistrationSummaryResponse>>;
 
+/// <summary>Matches the shared JSON contract (section F of the project guide).</summary>
 public sealed record RegistrationSummaryResponse(
     int TotalRegistrations,
-    int PendingRegistrations,
-    int ConfirmedRegistrations,
-    int CheckedInRegistrations,
-    int CancelledRegistrations,
-    int ExhibitorRegistrations,
-    int CompetitorRegistrations,
-    int VipRegistrations,
-    int UnpaidRegistrations,
-    int PartialRegistrations,
-    int PaidRegistrations,
-    decimal TotalRegistrationFees,
-    decimal TotalAmountPaid);
+    int Confirmed,
+    int CheckedIn,
+    int Pending,
+    int Cancelled,
+    decimal TotalFees,
+    decimal TotalPayments,
+    decimal UncollectedPayments);

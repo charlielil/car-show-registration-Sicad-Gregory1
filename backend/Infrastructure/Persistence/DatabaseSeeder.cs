@@ -23,13 +23,20 @@ public static class DatabaseSeeder
 
     private static readonly string[] Addresses =
     [
-        "Quezon City, Metro Manila", "Makati City, Metro Manila", "Cebu City, Cebu",
-        "Davao City, Davao del Sur", "Antipolo City, Rizal"
+        "Naga City, Camarines Sur", "Legazpi City, Albay", "Sorsogon City, Sorsogon",
+        "Iriga City, Camarines Sur", "Daraga, Albay"
     ];
 
     public static async Task SeedAsync(AppDbContext dbContext, CancellationToken cancellationToken = default)
     {
-        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        if (!dbContext.Database.GetMigrations().Any())
+        {
+            throw new InvalidOperationException(
+                "No EF Core migrations found. From the backend folder run: " +
+                "dotnet ef migrations add InitialCreate --project Infrastructure --startup-project Api --output-dir Persistence/Migrations");
+        }
+
+        await dbContext.Database.MigrateAsync(cancellationToken);
         if (await dbContext.Registrations.AnyAsync(cancellationToken))
         {
             return;
@@ -42,7 +49,7 @@ public static class DatabaseSeeder
             {
                 var type = types[index % types.Length];
                 var fee = type.GetFee();
-                var amountPaid = index % 3 switch
+                var amountPaid = (index + index / 3) % 3 switch
                 {
                     0 => 0m,
                     1 => fee / 2m,

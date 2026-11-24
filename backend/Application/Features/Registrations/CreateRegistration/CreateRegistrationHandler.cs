@@ -21,7 +21,7 @@ public sealed class CreateRegistrationHandler(IAppDbContext dbContext)
                 cancellationToken))
         {
             return Result<RegistrationDto>.Failure(
-                Error.Conflict("Registration.Conflict", "A registration already exists for this plate number."));
+                Error.Conflict("Registration.Conflict", $"A registration with plate number '{plateNumber}' already exists."));
         }
 
         var latestNumber = await dbContext.Registrations
@@ -54,7 +54,18 @@ public sealed class CreateRegistrationHandler(IAppDbContext dbContext)
         };
 
         dbContext.Registrations.Add(registration);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Two requests raced past the checks above and hit a unique index.
+            return Result<RegistrationDto>.Failure(
+                Error.Conflict(
+                    "Registration.Conflict",
+                    $"A registration with plate number '{plateNumber}' already exists."));
+        }
 
         return Result<RegistrationDto>.Success(RegistrationDto.FromEntity(registration));
     }

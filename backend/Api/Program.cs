@@ -15,9 +15,19 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
+// Database (SQLite file: carshow.db). Migrations live in the Infrastructure project.
 builder.Services.AddDbContext<IAppDbContext, AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=carshow.db"));
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=carshow.db",
+        sqlite => sqlite.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name)));
+
+// CORS: allow the React dev server (Vite)
+const string FrontendCorsPolicy = "Frontend";
+builder.Services.AddCors(options =>
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()));
 
 // Validators
 builder.Services.AddValidatorsFromAssembly(typeof(IAppDbContext).Assembly);
@@ -45,12 +55,14 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
-// Create the SQLite database and seed sample records on first run.
+// Apply pending migrations, then seed sample records (only when the table is empty).
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var dbContext = (AppDbContext)scope.ServiceProvider.GetRequiredService<IAppDbContext>();
     await DatabaseSeeder.SeedAsync(dbContext);
 }
+
+app.UseCors(FrontendCorsPolicy);
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

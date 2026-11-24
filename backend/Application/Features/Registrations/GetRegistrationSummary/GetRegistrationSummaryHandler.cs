@@ -13,32 +13,32 @@ public sealed class GetRegistrationSummaryHandler(IAppDbContext dbContext)
         GetRegistrationSummaryQuery query,
         CancellationToken cancellationToken = default)
     {
-        var registrations = await dbContext.Registrations
+        // Only the columns needed are loaded. Decimal sums are done in memory because
+        // SQLite cannot SUM decimal columns on the database side.
+        var rows = await dbContext.Registrations
             .AsNoTracking()
             .Select(registration => new
             {
                 registration.Status,
-                registration.RegistrationType,
                 registration.RegistrationFee,
                 registration.AmountPaid
             })
             .ToListAsync(cancellationToken);
 
+        // Cancelled registrations are excluded from the money totals.
+        var active = rows.Where(row => row.Status != RegistrationStatus.Cancelled).ToList();
+        var totalFees = active.Sum(row => row.RegistrationFee);
+        var totalPayments = active.Sum(row => row.AmountPaid);
+
         var response = new RegistrationSummaryResponse(
-            registrations.Count,
-            registrations.Count(registration => registration.Status == RegistrationStatus.Pending),
-            registrations.Count(registration => registration.Status == RegistrationStatus.Confirmed),
-            registrations.Count(registration => registration.Status == RegistrationStatus.CheckedIn),
-            registrations.Count(registration => registration.Status == RegistrationStatus.Cancelled),
-            registrations.Count(registration => registration.RegistrationType == RegistrationType.Exhibitor),
-            registrations.Count(registration => registration.RegistrationType == RegistrationType.Competitor),
-            registrations.Count(registration => registration.RegistrationType == RegistrationType.VIP),
-            registrations.Count(registration => registration.AmountPaid == 0m),
-            registrations.Count(registration =>
-                registration.AmountPaid > 0m && registration.AmountPaid < registration.RegistrationFee),
-            registrations.Count(registration => registration.AmountPaid == registration.RegistrationFee),
-            registrations.Sum(registration => registration.RegistrationFee),
-            registrations.Sum(registration => registration.AmountPaid));
+            TotalRegistrations: rows.Count,
+            Confirmed: rows.Count(row => row.Status == RegistrationStatus.Confirmed),
+            CheckedIn: rows.Count(row => row.Status == RegistrationStatus.CheckedIn),
+            Pending: rows.Count(row => row.Status == RegistrationStatus.Pending),
+            Cancelled: rows.Count(row => row.Status == RegistrationStatus.Cancelled),
+            TotalFees: totalFees,
+            TotalPayments: totalPayments,
+            UncollectedPayments: totalFees - totalPayments);
 
         return Result<RegistrationSummaryResponse>.Success(response);
     }
