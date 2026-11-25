@@ -21,11 +21,11 @@ builder.Services.AddDbContext<IAppDbContext, AppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=carshow.db",
         sqlite => sqlite.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name)));
 
-// CORS: allow the React dev server (Vite)
+// CORS: allow the React dev server (Vite), by localhost name or by 127.0.0.1
 const string FrontendCorsPolicy = "Frontend";
 builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
             .AllowAnyHeader()
             .AllowAnyMethod()));
 
