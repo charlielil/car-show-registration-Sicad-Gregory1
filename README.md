@@ -6,8 +6,8 @@ Course: Integrative Programming 2 (API Backend Development) — CCDI Sorsogon Ca
 
 | MEMBER | ROLE |
 | ------ | ---- |
-| Gregory Sicad | Backend Developer |
-| <Your name> | Frontend Developer |
+| Charlie Sicad | Backend Developer |
+| Angelica Gregory | Frontend Developer |
 
 ## Repository layout
 
